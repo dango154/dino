@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Huệ Vy xinh gái</title>
+  <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+      user-select: none;
+    }
+    body {
+      margin: 0;
+      background: linear-gradient(135deg, #ffeaf2, #fff6f0);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      flex-direction: column;
+      font-family: 'Comic Sans MS', sans-serif;
+      overflow: hidden;
+    }
+    .title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .side-img {
+      width: 60px;
+      height: 60px;
+      object-fit: contain;
+    }
+    h2 {
+      color: #ff66a3;
+      font-weight: 700;
+      font-size: 28px;
+      margin: 0;
+    }
+    model-viewer {
+      width: 90%;
+      height: 70vh;
+      border-radius: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+    }
+
+    /* --- POPUP GAME --- */
+    #popup {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: linear-gradient(135deg, #ffe0f0, #fff3f3);
+      z-index: 999;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    #gameCanvas {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+    }
+    #popup h1 {
+      position: absolute;
+      top: 20px;
+      font-size: 28px;
+      color: #ff4d88;
+      text-shadow: 0 0 5px #fff;
+      z-index: 2;
+    }
+    #popup .msg {
+      position: absolute;
+      bottom: 40px;
+      color: #ff4d88;
+      font-size: 20px;
+      font-weight: bold;
+      z-index: 2;
+    }
+
+    /* --- NÚT UI --- */
+    #soundBtn, #infoBtn {
+      display: none;
+      position: fixed;
+      top: 15px;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      font-size: 20px;
+      justify-content: center;
+      align-items: center;
+      box-shadow: 0 0 8px rgba(0,0,0,0.2);
+      background: white;
+      z-index: 1000;
+      transition: 0.3s;
+    }
+    #soundBtn:hover, #infoBtn:hover {
+      transform: scale(1.1);
+    }
+    #soundBtn { right: 15px; }
+    #infoBtn {
+      left: 15px;
+      animation: blink 1.5s infinite;
+      color: #ff4d88;
+      font-weight: bold;
+    }
+    @keyframes blink {
+      0%, 50%, 100% { opacity: 1; }
+      25%, 75% { opacity: 0.4; }
+    }
+
+    /* --- THÔNG BÁO NHỎ --- */
+    #toast {
+      position: fixed;
+      top: 65px;
+      left: 15px;
+      background: #fff0f6;
+      color: #ff4d88;
+      padding: 10px 15px;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      font-size: 14px;
+      z-index: 999;
+      display: none;
+      animation: fadeInOut 3s forwards;
+    }
+    @keyframes fadeInOut {
+      0% { opacity: 0; transform: translateY(-10px); }
+      10% { opacity: 1; transform: translateY(0); }
+      90% { opacity: 1; }
+      100% { opacity: 0; transform: translateY(-10px); }
+    }
+
+    audio {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NÚT UI -->
+  <button id="infoBtn">i</button>
+  <button id="soundBtn">🔊</button>
+  <div id="toast">Nhấn biểu tượng <b>AR</b> cho xem bằng camera ⬡</div>
+
+  <!-- POPUP GAME -->
+  <div id="popup">
+    <h1>Bắt 3 bong bóng màu hồng đi 🎈</h1>
+    <canvas id="gameCanvas"></canvas>
+    <div class="msg" id="msg">0 / 3 </div>
+  </div>
+
+  <!-- TRANG CHÍNH -->
+  <div class="title" style="display:none;" id="mainContent">
+    <img src="anh/uia.gif" class="side-img">
+    <h2>Huệ Vy sinh nhật vui vẻ nháa 💖</h2>
+    <img src="anh/dance.gif" class="side-img">
+  </div>
+
+  <model-viewer 
+    id="viewer"
+    src="Untitled.glb" 
+    alt="banh"
+    ar 
+    ar-modes="scene-viewer webxr quick-look"
+    auto-rotate 
+    camera-controls 
+    shadow-intensity="1"
+    autoplay
+    style="display:none;">
+  </model-viewer>
+
+  <audio id="bgm" loop>
+    <source src="nhac.mp3" type="audio/mpeg">
+  </audio>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const msg = document.getElementById('msg');
+    const bgm = document.getElementById('bgm');
+    const soundBtn = document.getElementById('soundBtn');
+    const infoBtn = document.getElementById('infoBtn');
+    const toast = document.getElementById('toast');
+
+    let gameEnded = false;
+    let soundOn = true;
+
+
+    soundBtn.addEventListener('click', () => {
+  soundOn = !soundOn;
+  if (soundOn && gameEnded) { // Chỉ phát nhạc nếu game đã kết thúc
+    bgm.play().catch(()=>{});
+    soundBtn.textContent = '🔊';
+  } else {
+    bgm.pause();
+    soundBtn.textContent = '🔇';
+  }
+});
+
+
+    infoBtn.addEventListener('click', () => {
+      toast.style.display = 'block';
+      toast.style.animation = 'none';
+      toast.offsetHeight; // reset animation
+      toast.style.animation = 'fadeInOut 3s forwards';
+      setTimeout(() => toast.style.display = 'none', 3000);
+    });
+
+  
+    let w, h;
+    function resize() {
+      w = canvas.width = window.innerWidth;
+      h = canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    const balloons = [];
+    const colors = ['#ff69b4','#87cefa','#ffa07a','#98fb98','#dda0dd'];
+    const targetColor = '#ff69b4';
+    let caught = 0;
+
+    for (let i = 0; i < 15; i++) {
+      balloons.push({
+        x: Math.random() * w,
+        y: h + Math.random() * 200,
+        r: 25 + Math.random() * 15,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        speed: 0.8 + Math.random() * 1.5
+      });
+    }
+
+    function drawBalloon(b) {
+      ctx.beginPath();
+      ctx.fillStyle = b.color;
+      ctx.ellipse(b.x, b.y, b.r*0.8, b.r, 0, 0, Math.PI*2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(b.x, b.y + b.r);
+      ctx.lineTo(b.x, b.y + b.r + 20);
+      ctx.strokeStyle = '#999';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
+    function update() {
+      ctx.clearRect(0,0,w,h);
+      for (let b of balloons) {
+        b.y -= b.speed;
+        if (b.y < -50) {
+          b.y = h + 50;
+          b.x = Math.random() * w;
+        }
+        drawBalloon(b);
+      }
+      requestAnimationFrame(update);
+    }
+    update();
+
+    canvas.addEventListener('click', e => {
+      bgm.play().catch(()=>{}); // cho phép phát nhạc trên iOS
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      for (let b of balloons) {
+        const dx = b.x - x;
+        const dy = b.y - y;
+        if (Math.sqrt(dx*dx + dy*dy) < b.r) {
+          if (b.color === targetColor) {
+            caught++;
+            b.y = -100;
+            msg.textContent = `${caught} / 3 bong bóng hồng`;
+            if (caught >= 3) {
+              endGame();
+            }
+          } else {
+            msg.textContent = "Sai màu rồi 😝";
+          }
+        }
+      }
+    });
+
+    function endGame() {
+  const popup = document.getElementById('popup');
+  popup.style.transition = 'opacity 1s';
+  popup.style.opacity = 0;
+  setTimeout(() => {
+    popup.remove();
+    document.getElementById('mainContent').style.display = 'flex';
+    document.getElementById('viewer').style.display = 'block';
+    document.getElementById('soundBtn').style.display = 'flex';
+    document.getElementById('infoBtn').style.display = 'flex';
+    
+    // Đánh dấu game đã kết thúc và phát nhạc
+    gameEnded = true;
+    if (soundOn) {
+      bgm.play().catch(()=>{});
+    }
+  }, 1000);
+}
+  </script>
+</body>
+</html>
